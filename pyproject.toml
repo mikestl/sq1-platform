@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sq1-platform"
+version = "0.1.0"
+description = "SQ1 shared cloud platform helpers — Key Vault secrets, QBO OAuth rotation, D365 auth"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [{ name = "Square One Ceilings" }]
+dependencies = [
+    "azure-identity>=1.17",
+    "azure-keyvault-secrets>=4.8",
+    "requests>=2.31",
+    "msal>=1.28",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-mock>=3"]
+
+[tool.setuptools.packages.find]
+include = ["sq1_platform*"]
+exclude = ["tests*"]
