@@ -1,8 +1,8 @@
 """SQ1 Platform — Key Vault secrets helper.
 
 Wraps `azure.keyvault.secrets.SecretClient` with:
-- Lazy connection via DefaultAzureCredential (works for Managed Identity in Azure
-  AND for `az login` sessions on a developer's machine)
+- Runtime-aware credential picker (ManagedIdentityCredential in Azure
+  Functions / App Service, DefaultAzureCredential locally for `az login`)
 - Short-TTL caching to avoid hitting KV on every call
 - Atomic update (set replaces value, cache invalidated)
 
@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Dict, Tuple
 
@@ -30,6 +31,31 @@ from azure.keyvault.secrets import SecretClient
 DEFAULT_VAULT_URL = "https://sq1-platform-kv.vault.azure.net/"
 
 log = logging.getLogger("sq1_platform.secrets")
+
+
+def _build_credential():
+    """Pick the right credential for the runtime.
+
+    In Azure Functions / App Service we use ``ManagedIdentityCredential``
+    explicitly (system-assigned). We can't rely on ``DefaultAzureCredential``
+    because most cloud agents set ``AZURE_CLIENT_ID`` to the D365
+    service-principal app id, and ``DefaultAzureCredential`` reads that env
+    var as a *user-assigned MI* client_id — which fails when the function
+    uses a system-assigned identity.
+
+    Locally, ``DefaultAzureCredential`` is correct — it picks up
+    ``az login`` automatically.
+
+    Detection: ``FUNCTIONS_WORKER_RUNTIME`` is set in Function Apps;
+    ``WEBSITE_INSTANCE_ID`` is set in any App Service / Web App / Function App.
+    """
+    in_azure_runtime = bool(
+        os.environ.get("FUNCTIONS_WORKER_RUNTIME")
+        or os.environ.get("WEBSITE_INSTANCE_ID")
+    )
+    if in_azure_runtime:
+        return azure.identity.ManagedIdentityCredential()
+    return azure.identity.DefaultAzureCredential()
 
 
 class Secrets:
@@ -48,7 +74,7 @@ class Secrets:
         self.vault_url = vault_url
         self._client = SecretClient(
             vault_url=vault_url,
-            credential=azure.identity.DefaultAzureCredential(),
+            credential=_build_credential(),
         )
         self._cache: Dict[str, Tuple[str, float]] = {}
         self._cache_ttl = cache_ttl_seconds
