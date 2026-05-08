@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sq1-platform"
-version = "0.1.1"
-description = "SQ1 shared cloud platform helpers — Key Vault secrets, QBO OAuth rotation, D365 auth"
+version = "0.2.0"
+description = "SQ1 shared cloud platform helpers — Key Vault secrets, QBO OAuth rotation, D365 auth, LLM annotator"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary" }
@@ -15,6 +15,7 @@ dependencies = [
     "azure-keyvault-secrets>=4.8",
     "requests>=2.31",
     "msal>=1.28",
+    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]
